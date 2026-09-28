@@ -1,4 +1,4 @@
-"""BLUEPRINT "auth": registro, inicio y cierre de sesión."""
+"""BLUEPRINT "auth": register, login and logout."""
 from flask import Blueprint
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")

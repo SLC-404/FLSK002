@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% from "_form.html" import avatar %}
+{% block title %}Usuarios{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Usuarios</h1>
+    {% if current_user.can("create-users") %}
+      <a class="btn btn-primary" href="{{ url_for('users.create') }}">+ Nuevo usuario</a>
+    {% endif %}
+  </div>
+
+  {# GET FILTERS: /users/?q=ana&role=2 #}
+  <form method="get" class="row g-2 mb-3">
+    <div class="col-md-6">
+      <input class="form-control" name="q" value="{{ q }}" placeholder="Buscar por nombre o correo">
+    </div>
+    <div class="col-md-3">
+      <select class="form-select" name="role">
+        <option value="">Todos los roles</option>
+        {% for r in roles %}
+          <option value="{{ r.id }}" {{ "selected" if r.id == role_id }}>{{ r.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button class="btn btn-outline-secondary">Filtrar</button>
+      <a class="btn btn-link" href="{{ url_for('users.index') }}">Limpiar</a>
+    </div>
+  </form>
+
+  <table class="table align-middle bg-white">
+    <thead><tr><th></th><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>ID</th><th></th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr>
+        <td>{{ avatar(u, 36) }}</td>
+        <td>{{ u.name }}</td>
+        <td>{{ u.email }}</td>
+        <td><span class="badge bg-{{ 'danger' if u.is_admin else 'secondary' }}">{{ u.role.name }}</span></td>
+        <td>
+          {# Enable/disable with one click (POST + CSRF) #}
+          <form method="post" action="{{ url_for('users.toggle_active', user_id=u.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm {{ 'btn-success' if u.active else 'btn-outline-secondary' }}"
+                    {{ "disabled" if u.id == current_user.id or not current_user.can("edit-users") }}>
+              {{ "Activo" if u.active else "Inactivo" }}
+            </button>
+          </form>
+        </td>
+        <td>
+          {% if u.id_document %}
+            <a href="{{ url_for('profile.id_document', user_id=u.id) }}" target="_blank">Ver</a>
+          {% else %}—{% endif %}
+        </td>
+        <td class="text-end">
+          {% if current_user.can("edit-users") %}
+            <a class="btn btn-sm btn-warning" href="{{ url_for('users.edit', user_id=u.id) }}">Editar</a>
+          {% endif %}
+          {% if current_user.can("delete-users") and u.id != current_user.id %}
+            <form method="post" action="{{ url_for('users.delete', user_id=u.id) }}" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar a {{ u.name }}?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-danger">Eliminar</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="text-center text-muted">No hay usuarios con esos filtros</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

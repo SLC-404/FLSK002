@@ -1,101 +1,102 @@
-"""CRUD DE ROLES (protegido por ver/crear/editar/eliminar-roles).
+"""ROLES CRUD (protected by view/create/edit/delete-roles).
 
-Aquí se ELIGEN los permisos de cada rol (checkboxes). Luego, en Usuarios, a cada usuario
-se le asigna un rol. Así:  permisos -> rol -> usuario.
+This is where each role's permissions are CHOSEN (checkboxes). Then, in Users, each user
+gets a role. So:  permissions -> role -> user.
 """
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from sqlalchemy import func
 
 from app.extensions import db
-from app.models import Permiso, Rol, Usuario
+from app.models import Permission, Role, User
 from app.roles import bp
-from app.roles.forms import RolForm
-from app.utils.decoradores import permiso_requerido
+from app.roles.forms import RoleForm
+from app.utils.decorators import permission_required
 
-ROLES_PROTEGIDOS = {"admin", "usuario"}   # los usa el sistema: no se borran ni se renombran
+PROTECTED_ROLES = {"admin", "user"}   # used by the system: can't be deleted or renamed
 
 
-def permisos_elegidos(form):
-    """Convierte los ids marcados en objetos Permiso."""
-    if not form.permisos.data:
+def selected_permissions(form):
+    """Turns the checked ids into Permission objects."""
+    if not form.permissions.data:
         return []
-    return db.session.scalars(db.select(Permiso).where(Permiso.id.in_(form.permisos.data))).all()
+    return db.session.scalars(
+        db.select(Permission).where(Permission.id.in_(form.permissions.data))).all()
 
 
 @bp.get("/")
 @login_required
-@permiso_requerido("ver-roles")
-def lista():
-    # Cada rol con cuántos usuarios tiene (LEFT JOIN + COUNT + GROUP BY)
+@permission_required("view-roles")
+def index():
+    # Each role with how many users it has (LEFT JOIN + COUNT + GROUP BY)
     stmt = (
-        db.select(Rol, func.count(Usuario.id).label("total"))
-        .outerjoin(Rol.usuarios)
-        .group_by(Rol.id)
-        .order_by(Rol.nombre)
+        db.select(Role, func.count(User.id).label("total"))
+        .outerjoin(Role.users)
+        .group_by(Role.id)
+        .order_by(Role.name)
     )
-    filas = db.session.execute(stmt).all()      # varias cosas por fila -> execute
-    return render_template("roles/lista.html", filas=filas, protegidos=ROLES_PROTEGIDOS)
+    rows = db.session.execute(stmt).all()      # several things per row -> execute
+    return render_template("roles/index.html", rows=rows, protected=PROTECTED_ROLES)
 
 
-@bp.route("/nuevo", methods=["GET", "POST"])
+@bp.route("/new", methods=["GET", "POST"])
 @login_required
-@permiso_requerido("crear-roles")
-def nuevo():
-    form = RolForm()
+@permission_required("create-roles")
+def create():
+    form = RoleForm()
     if form.validate_on_submit():
-        rol = Rol(nombre=form.nombre.data, descripcion=form.descripcion.data or None)
-        rol.permisos = permisos_elegidos(form)      # SQLAlchemy llena rol_permisos solo
-        db.session.add(rol)
+        role = Role(name=form.name.data, description=form.description.data or None)
+        role.permissions = selected_permissions(form)   # SQLAlchemy fills role_permissions
+        db.session.add(role)
         db.session.commit()
         flash("Rol creado", "success")
-        return redirect(url_for("roles.lista"))
-    return render_template("roles/form.html", form=form, titulo="Nuevo rol")
+        return redirect(url_for("roles.index"))
+    return render_template("roles/form.html", form=form, title="Nuevo rol")
 
 
-@bp.route("/<int:rol_id>/editar", methods=["GET", "POST"])
+@bp.route("/<int:role_id>/edit", methods=["GET", "POST"])
 @login_required
-@permiso_requerido("editar-roles")
-def editar(rol_id):
-    rol = db.get_or_404(Rol, rol_id)
-    form = RolForm(obj=rol, rol_id=rol.id)
-    protegido = rol.nombre in ROLES_PROTEGIDOS
-    es_admin = rol.nombre == "admin"
+@permission_required("edit-roles")
+def edit(role_id):
+    role = db.get_or_404(Role, role_id)
+    form = RoleForm(obj=role, role_id=role.id)
+    protected = role.name in PROTECTED_ROLES
+    is_admin = role.name == "admin"
 
     if request.method == "GET":
-        # obj=rol no sabe convertir objetos Permiso a ids: se precargan a mano
-        form.permisos.data = [p.id for p in rol.permisos]
+        # obj=role can't turn Permission objects into ids: preload them by hand
+        form.permissions.data = [p.id for p in role.permissions]
 
     if form.validate_on_submit():
-        if protegido and form.nombre.data != rol.nombre:
+        if protected and form.name.data != role.name:
             flash("Este rol lo usa el sistema: no se puede renombrar", "danger")
         else:
-            rol.nombre = form.nombre.data
-            rol.descripcion = form.descripcion.data or None
-            # admin SIEMPRE tiene todos los permisos (para que nadie se quede fuera)
-            if es_admin:
-                rol.permisos = db.session.scalars(db.select(Permiso)).all()
+            role.name = form.name.data
+            role.description = form.description.data or None
+            # admin ALWAYS has every permission (so nobody gets locked out)
+            if is_admin:
+                role.permissions = db.session.scalars(db.select(Permission)).all()
             else:
-                rol.permisos = permisos_elegidos(form)
+                role.permissions = selected_permissions(form)
             db.session.commit()
             flash("Rol actualizado", "success")
-            return redirect(url_for("roles.lista"))
-    return render_template("roles/form.html", form=form, titulo="Editar rol",
-                           protegido=protegido, es_admin=es_admin)
+            return redirect(url_for("roles.index"))
+    return render_template("roles/form.html", form=form, title="Editar rol",
+                           protected=protected, is_admin=is_admin)
 
 
-@bp.post("/<int:rol_id>/eliminar")
+@bp.post("/<int:role_id>/delete")
 @login_required
-@permiso_requerido("eliminar-roles")
-def eliminar(rol_id):
-    rol = db.get_or_404(Rol, rol_id)
-    if rol.nombre in ROLES_PROTEGIDOS:
+@permission_required("delete-roles")
+def delete(role_id):
+    role = db.get_or_404(Role, role_id)
+    if role.name in PROTECTED_ROLES:
         flash("Este rol lo usa el sistema: no se puede eliminar", "danger")
-    elif rol.usuarios:
-        flash(f"No se puede eliminar: {len(rol.usuarios)} usuario(s) tienen este rol", "danger")
+    elif role.users:
+        flash(f"No se puede eliminar: {len(role.users)} usuario(s) tienen este rol", "danger")
     else:
-        nombre = rol.nombre            # guardarlo ANTES: después del commit el objeto ya no existe
-        db.session.delete(rol)
+        name = role.name            # save it BEFORE: after the commit the object is gone
+        db.session.delete(role)
         db.session.commit()
-        flash(f"Rol '{nombre}' eliminado", "warning")
-    return redirect(url_for("roles.lista"))
+        flash(f"Rol '{name}' eliminado", "warning")
+    return redirect(url_for("roles.index"))

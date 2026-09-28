@@ -1,10 +1,10 @@
-"""RUTAS DE AUTENTICACIÓN
+"""AUTH ROUTES
 
-Flask-Login nos da:
-  login_user(usuario)   -> inicia la sesión     (Auth::login)
-  logout_user()         -> cierra la sesión     (Auth::logout)
-  current_user          -> el usuario actual    (Auth::user)
-  @login_required       -> protege una ruta     (middleware 'auth')
+Flask-Login gives us:
+  login_user(user)   -> starts the session   (Auth::login)
+  logout_user()      -> ends the session     (Auth::logout)
+  current_user       -> the current user     (Auth::user)
+  @login_required    -> protects a route     (middleware 'auth')
 """
 from urllib.parse import urlsplit
 
@@ -12,73 +12,70 @@ from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app.auth import bp
-from app.auth.forms import LoginForm, RegistroForm
+from app.auth.forms import LoginForm, RegisterForm
 from app.extensions import db
-from app.models import Rol, Usuario
+from app.models import Role, User
 
 
-def es_url_segura(destino):
-    """Solo permite redirigir a rutas de NUESTRA app (que empiecen con /).
-    Evita que alguien mande un link tipo /auth/login?next=https://sitio-malo.com"""
-    return bool(destino) and urlsplit(destino).netloc == "" and destino.startswith("/")
+def is_safe_url(target):
+    """Only allow redirects to routes of OUR app (starting with /).
+    Prevents links like /auth/login?next=https://evil-site.com"""
+    return bool(target) and urlsplit(target).netloc == "" and target.startswith("/")
 
 
-@bp.route("/registro", methods=["GET", "POST"])
-def registro():
-    if current_user.is_authenticated:           # si ya inició sesión, no tiene caso registrarse
-        return redirect(url_for("main.panel"))
+@bp.route("/register", methods=["GET", "POST"])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for("main.dashboard"))
 
-    form = RegistroForm()
+    form = RegisterForm()
     if form.validate_on_submit():
-        # Los que se registran solos reciben el rol "usuario" (los admins los crea otro admin)
-        rol_usuario = db.session.scalar(db.select(Rol).filter_by(nombre="usuario"))
-        if rol_usuario is None:
+        # Self-registered users get the "user" role (admins are created by another admin)
+        user_role = db.session.scalar(db.select(Role).filter_by(name="user"))
+        if user_role is None:
             flash("Faltan los roles. Corre en la terminal: flask seed", "danger")
-            return render_template("auth/registro.html", form=form)
+            return render_template("auth/register.html", form=form)
 
-        usuario = Usuario(nombre=form.nombre.data.strip(), email=form.email.data.lower(),
-                          rol=rol_usuario)
-        usuario.set_password(form.password.data)   # se guarda el HASH, no la contraseña
-        db.session.add(usuario)
+        user = User(name=form.name.data.strip(), email=form.email.data.lower(), role=user_role)
+        user.set_password(form.password.data)   # stores the HASH, not the password
+        db.session.add(user)
         db.session.commit()
 
-        login_user(usuario)                          # lo dejamos con la sesión iniciada
-        flash(f"¡Bienvenido, {usuario.nombre}! Tu cuenta fue creada.", "success")
-        return redirect(url_for("main.panel"))
+        login_user(user)
+        flash(f"¡Bienvenido, {user.name}! Tu cuenta fue creada.", "success")
+        return redirect(url_for("main.dashboard"))
 
-    return render_template("auth/registro.html", form=form)
+    return render_template("auth/register.html", form=form)
 
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("main.panel"))
+        return redirect(url_for("main.dashboard"))
 
     form = LoginForm()
     if form.validate_on_submit():
-        usuario = db.session.scalar(
-            db.select(Usuario).filter_by(email=form.email.data.lower())
-        )
-        # Mismo mensaje si no existe el correo o si la contraseña está mal:
-        # así no le decimos a un atacante qué correos sí están registrados.
-        if usuario is None or not usuario.check_password(form.password.data):
+        user = db.session.scalar(db.select(User).filter_by(email=form.email.data.lower()))
+        # Same message for unknown email or wrong password:
+        # we don't tell an attacker which emails are registered.
+        if user is None or not user.check_password(form.password.data):
             flash("Correo o contraseña incorrectos", "danger")
-        elif not usuario.activo:
+        elif not user.active:
             flash("Tu cuenta está desactivada", "danger")
         else:
-            login_user(usuario, remember=form.recordarme.data)
-            flash(f"Hola, {usuario.nombre}", "success")
+            login_user(user, remember=form.remember.data)
+            flash(f"Hola, {user.name}", "success")
 
-            # Si venía de una página protegida, regresarlo ahí (?next=/panel)
-            destino = request.args.get("next")
-            return redirect(destino if es_url_segura(destino) else url_for("main.panel"))
+            # If they came from a protected page, send them back (?next=/dashboard)
+            target = request.args.get("next")
+            return redirect(target if is_safe_url(target) else url_for("main.dashboard"))
 
     return render_template("auth/login.html", form=form)
 
 
-@bp.post("/logout")          # POST: cerrar sesión cambia el estado, no debe ser un link GET
+@bp.post("/logout")          # POST: logging out changes state, it shouldn't be a GET link
 @login_required
 def logout():
     logout_user()
     flash("Cerraste sesión", "info")
-    return redirect(url_for("main.inicio"))
+    return redirect(url_for("main.index"))

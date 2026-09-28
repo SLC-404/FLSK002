@@ -1,4 +1,4 @@
-"""BLUEPRINT "main": páginas generales (inicio y panel)."""
+"""BLUEPRINT "main": general pages (home and dashboard)."""
 from flask import Blueprint
 
 bp = Blueprint("main", __name__)

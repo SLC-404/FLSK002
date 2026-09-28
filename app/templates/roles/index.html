@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+{% block title %}Roles{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Roles</h1>
+    {% if current_user.can("create-roles") %}
+      <a class="btn btn-primary" href="{{ url_for('roles.create') }}">+ Nuevo rol</a>
+    {% endif %}
+  </div>
+
+  <table class="table align-middle bg-white">
+    <thead><tr><th>Nombre</th><th>Descripción</th><th>Permisos</th><th>Usuarios</th><th></th></tr></thead>
+    <tbody>
+    {# Each row has TWO things (the role and its count) because the query used execute #}
+    {% for role, total in rows %}
+      <tr>
+        <td><strong>{{ role.name }}</strong>
+          {% if role.name in protected %}<span class="badge bg-light text-dark">sistema</span>{% endif %}
+        </td>
+        <td>{{ role.description or "—" }}</td>
+        <td>{{ role.permissions|length }}</td>
+        <td>{{ total }}</td>
+        <td class="text-end">
+          {% if current_user.can("edit-roles") %}
+            <a class="btn btn-sm btn-warning" href="{{ url_for('roles.edit', role_id=role.id) }}">Editar</a>
+          {% endif %}
+          {% if current_user.can("delete-roles") and role.name not in protected %}
+            <form method="post" action="{{ url_for('roles.delete', role_id=role.id) }}" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar el rol {{ role.name }}?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-danger">Eliminar</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

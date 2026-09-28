@@ -2,18 +2,17 @@ from flask import render_template
 from flask_login import current_user, login_required
 
 from app.main import bp
-from app.utils.decoradores import permiso_requerido
+from app.utils.decorators import permission_required
 
 
 @bp.get("/")
-def inicio():
-    """Página pública: cualquiera puede verla."""
-    return render_template("main/inicio.html")
+def index():
+    """Public page: anyone can see it."""
+    return render_template("main/index.html")
 
 
-@bp.get("/panel")
-@login_required                  # ← solo usuarios con sesión iniciada (como middleware('auth'))
-@permiso_requerido("ver-inicio")  # ← y que su rol tenga el permiso
-def panel():
-    """Página privada: si no has iniciado sesión, te manda al login."""
-    return render_template("main/panel.html", usuario=current_user)
+@bp.get("/dashboard")
+@login_required                          # only logged-in users (like middleware('auth'))
+@permission_required("view-dashboard")   # and their role must have the permission
+def dashboard():
+    return render_template("main/dashboard.html", user=current_user)

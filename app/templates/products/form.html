@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% from "_form.html" import field %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-4">{{ title }}</h1>
+  <div class="card col-lg-8">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+        <div class="row">
+          <div class="col-md-6">{{ field(form.name) }}</div>
+          <div class="col-md-6">{{ field(form.category_id) }}</div>   {# the SELECT #}
+        </div>
+        {{ field(form.description) }}
+        <div class="row">
+          <div class="col-md-6">{{ field(form.price) }}</div>
+          <div class="col-md-6">{{ field(form.stock) }}</div>
+        </div>
+        {{ form.submit(class="btn btn-success") }}
+        <a class="btn btn-secondary" href="{{ url_for('products.index') }}">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}

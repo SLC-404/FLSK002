@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% from "_form.html" import field, avatar %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-4">{{ title }}</h1>
+  <div class="card col-lg-8">
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="row">
+          <div class="col-md-6">{{ field(form.name) }}</div>
+          <div class="col-md-6">{{ field(form.email) }}</div>
+        </div>
+
+        <div class="row align-items-end">
+          <div class="col-md-6">{{ field(form.role_id) }}</div>   {# the SELECT #}
+          <div class="col-md-6">{{ field(form.active) }}</div>    {# the CHECKBOX #}
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            {{ field(form.password, "Al editar, déjala vacía para no cambiarla." if user) }}
+          </div>
+          <div class="col-md-6">{{ field(form.confirm) }}</div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            {% if user and user.photo %}<div class="mb-2">{{ avatar(user, 60) }}</div>{% endif %}
+            {{ field(form.photo) }}
+          </div>
+          <div class="col-md-6">
+            {% if user and user.id_document %}
+              <div class="mb-2">Actual:
+                <a href="{{ url_for('profile.id_document', user_id=user.id) }}" target="_blank">
+                  {{ user.id_document_name }}</a>
+              </div>
+            {% endif %}
+            {{ field(form.id_document) }}
+          </div>
+        </div>
+
+        {{ form.submit(class="btn btn-success") }}
+        <a class="btn btn-secondary" href="{{ url_for('users.index') }}">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}

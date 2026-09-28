@@ -1,107 +1,83 @@
-"""MODELOS: Permiso, Rol y Usuario.
+"""MODELS: Permission, Role, User, Category and Product.
 
-Cadena de permisos:   Permiso  <-- N:M -->  Rol  <-- 1:N -->  Usuario
-  - Un ROL tiene MUCHOS permisos y un PERMISO está en MUCHOS roles (tabla rol_permisos).
-  - Un USUARIO tiene UN rol, y "hereda" los permisos de ese rol.
-
-Relación 1 a N (capítulo 9.5):  un Rol tiene MUCHOS usuarios,
-                                cada Usuario tiene UN rol.
-  - Usuario.rol_id   -> columna REAL (llave foránea), va en el lado "muchos"
-  - Usuario.rol      -> atajo de Python: el objeto Rol     (belongsTo)
-  - Rol.usuarios     -> atajo de Python: lista de usuarios (hasMany)
+Permission chain:   Permission  <-- N:M -->  Role  <-- 1:N -->  User
+  - A ROLE has MANY permissions and a PERMISSION belongs to MANY roles (role_permissions table).
+  - A USER has ONE role and "inherits" that role's permissions.
 """
 from datetime import datetime
+from decimal import Decimal
 
 from flask_login import AnonymousUserMixin, UserMixin
-from sqlalchemy import Column, ForeignKey, String, Table
+from sqlalchemy import Column, ForeignKey, Numeric, String, Table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db, login_manager
 
-
-# TABLA INTERMEDIA N:M (capítulo 9.5): solo guarda parejas (rol_id, permiso_id).
-# No es clase porque no tiene datos extra; la usamos con secondary= en las relaciones.
-rol_permisos = Table(
-    "rol_permisos",
+# N:M PIVOT TABLE: only stores (role_id, permission_id) pairs.
+# Not a class because it has no extra data; used with secondary= in the relationships.
+role_permissions = Table(
+    "role_permissions",
     db.metadata,
-    Column("rol_id", ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
-    Column("permiso_id", ForeignKey("permisos.id", ondelete="CASCADE"), primary_key=True),
+    Column("role_id", ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+    Column("permission_id", ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
 )
 
-class Category(db.Model):
-    __tablename__="category"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    nombre: Mapped[str] = mapped_column(String(100))
-    descripcion: Mapped[str | None] = mapped_column(String(250))
-    
-    products:Mapped[list["Products"]]=relationship("category")
-    
-class Products(db.Model):
-    __tablename__="products"
-    
-    id: Mapped[int] = mapped_column(primary_key=True)
-    nombre: Mapped[str] = mapped_column(String(100))      # "ver-usuarios"
-    descripcion: Mapped[str | None] = mapped_column(String(250))
-    price: Mapped[int]
-    quantity: Mapped[int]
-    
-    category_id: Mapped[int]= mapped_column(ForeignKey("category.id"))
-    category: Mapped["Category"]= relationship(back_populates="category")
 
-    
-class Permiso(db.Model):
-    __tablename__ = "permisos"
+class Permission(db.Model):
+    __tablename__ = "permissions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    nombre: Mapped[str] = mapped_column(String(50), unique=True)      # "ver-usuarios"
-    descripcion: Mapped[str | None] = mapped_column(String(150))
+    name: Mapped[str] = mapped_column(String(50), unique=True)       # "view-users"
+    description: Mapped[str | None] = mapped_column(String(150))
 
-    roles: Mapped[list["Rol"]] = relationship(secondary=rol_permisos, back_populates="permisos")
+    roles: Mapped[list["Role"]] = relationship(secondary=role_permissions,
+                                               back_populates="permissions")
 
     @property
-    def modulo(self):
-        """'ver-usuarios' -> 'usuarios'  (para agrupar en pantalla)."""
-        return self.nombre.split("-", 1)[-1]
+    def module(self):
+        """'view-users' -> 'users'  (used to group them on screen)."""
+        return self.name.split("-", 1)[-1]
 
     def __repr__(self):
-        return f"<Permiso {self.nombre}>"
+        return f"<Permission {self.name}>"
 
 
-class Rol(db.Model):
+class Role(db.Model):
     __tablename__ = "roles"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    nombre: Mapped[str] = mapped_column(String(30), unique=True)      # "admin", "usuario"
-    descripcion: Mapped[str | None] = mapped_column(String(150))
+    name: Mapped[str] = mapped_column(String(30), unique=True)       # "admin", "user"
+    description: Mapped[str | None] = mapped_column(String(150))
 
-    usuarios: Mapped[list["Usuario"]] = relationship(back_populates="rol")
-    permisos: Mapped[list["Permiso"]] = relationship(secondary=rol_permisos, back_populates="roles",
-                                                     order_by="Permiso.nombre")
+    users: Mapped[list["User"]] = relationship(back_populates="role")
+    permissions: Mapped[list["Permission"]] = relationship(secondary=role_permissions,
+                                                           back_populates="roles",
+                                                           order_by="Permission.name")
 
     def __repr__(self):
-        return f"<Rol {self.nombre}>"
+        return f"<Role {self.name}>"
 
 
-class Usuario(UserMixin, db.Model):
-    __tablename__ = "usuarios"
+class User(UserMixin, db.Model):
+    __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    nombre: Mapped[str] = mapped_column(String(80))
+    name: Mapped[str] = mapped_column(String(80))
     email: Mapped[str] = mapped_column(String(120), unique=True, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255))   # nunca la contraseña, solo su hash
-    activo: Mapped[bool] = mapped_column(default=True)
-    creado_en: Mapped[datetime] = mapped_column(default=datetime.now)
+    password_hash: Mapped[str] = mapped_column(String(255))   # never the password, only its hash
+    active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
 
-    # ARCHIVOS: en la BD solo se guarda el NOMBRE del archivo, no el archivo.
-    # El archivo vive en instance/uploads/fotos/ o instance/uploads/identificaciones/
-    foto: Mapped[str | None] = mapped_column(String(100))
-    identificacion: Mapped[str | None] = mapped_column(String(100))
-    identificacion_nombre: Mapped[str | None] = mapped_column(String(150))  # nombre original
+    # FILES: the DB only stores the file NAME. The file lives in
+    # instance/uploads/photos/ or instance/uploads/id_documents/
+    photo: Mapped[str | None] = mapped_column(String(100))
+    id_document: Mapped[str | None] = mapped_column(String(100))
+    id_document_name: Mapped[str | None] = mapped_column(String(150))   # original file name
 
-    # RELACIÓN con Rol
-    rol_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))
-    rol: Mapped["Rol"] = relationship(back_populates="usuarios")
+    # Relationship with Role
+    role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))
+    role: Mapped["Role"] = relationship(back_populates="users")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -109,35 +85,74 @@ class Usuario(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    def tiene_rol(self, *nombres):
-        """usuario.tiene_rol("admin")  o  usuario.tiene_rol("admin", "supervisor")"""
-        return self.rol is not None and self.rol.nombre in nombres
+    def has_role(self, *names):
+        """user.has_role("admin")  or  user.has_role("admin", "supervisor")"""
+        return self.role is not None and self.role.name in names
 
-    def puede(self, permiso):
-        """usuario.puede("ver-usuarios") -> True/False según los permisos de SU rol.
-        En plantillas:  {% if current_user.puede("crear-usuarios") %} ... {% endif %}"""
-        return self.rol is not None and any(p.nombre == permiso for p in self.rol.permisos)
+    def can(self, permission):
+        """user.can("view-users") -> True/False based on the permissions of THEIR role.
+        In templates:  {% if current_user.can("create-users") %} ... {% endif %}"""
+        return self.role is not None and any(p.name == permission for p in self.role.permissions)
 
     @property
-    def es_admin(self):
-        return self.tiene_rol("admin")
+    def is_admin(self):
+        return self.has_role("admin")
 
     @property
     def is_active(self):
-        return self.activo
+        """Flask-Login does not let disabled users log in."""
+        return self.active
 
     def __repr__(self):
-        return f"<Usuario {self.email}>"
+        return f"<User {self.email}>"
 
 
-class Anonimo(AnonymousUserMixin):
-    def puede(self, permiso):
+# ---------------------------------------------------------------------------
+# PRACTICE 9.7: Category 1 --- N Product
+#   - Product.category_id -> REAL column (foreign key), goes on the "many" side
+#   - Product.category    -> Python shortcut: the Category object      (belongsTo)
+#   - Category.products   -> Python shortcut: list of its products     (hasMany)
+#   back_populates connects both sides: each one names the OTHER attribute.
+# ---------------------------------------------------------------------------
+class Category(db.Model):
+    __tablename__ = "categories"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True)
+    description: Mapped[str | None] = mapped_column(String(250))
+
+    products: Mapped[list["Product"]] = relationship(back_populates="category")
+
+    def __repr__(self):
+        return f"<Category {self.name}>"
+
+
+class Product(db.Model):
+    __tablename__ = "products"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    description: Mapped[str | None] = mapped_column(String(250))
+    # Numeric(10, 2): exact money (up to 99,999,999.99). Python gives you a Decimal.
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    stock: Mapped[int] = mapped_column(default=0)
+
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
+    category: Mapped["Category"] = relationship(back_populates="products")
+
+    def __repr__(self):
+        return f"<Product {self.name} ${self.price}>"
+
+
+class Guest(AnonymousUserMixin):
+    """Logged-out user: can't do anything (so current_user.can() never crashes)."""
+    def can(self, permission):
         return False
 
 
-login_manager.anonymous_user = Anonimo
+login_manager.anonymous_user = Guest
 
 
 @login_manager.user_loader
-def cargar_usuario(user_id):
-    return db.session.get(Usuario, int(user_id))
+def load_user(user_id):
+    return db.session.get(User, int(user_id))

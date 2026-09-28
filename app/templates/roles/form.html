@@ -1,50 +1,50 @@
 {% extends "layout.html" %}
-{% from "_formulario.html" import campo %}
-{% block titulo %}{{ titulo }}{% endblock %}
+{% from "_form.html" import field %}
+{% block title %}{{ title }}{% endblock %}
 
-{% block contenido %}
-  <h1 class="mb-4">{{ titulo }}</h1>
+{% block content %}
+  <h1 class="mb-4">{{ title }}</h1>
   <div class="card col-lg-8">
     <div class="card-body">
-      {% if protegido %}
+      {% if protected %}
         <div class="alert alert-info">Este rol lo usa el sistema: no se puede renombrar.</div>
       {% endif %}
       <form method="post" novalidate>
         {{ form.hidden_tag() }}
         <div class="row">
-          <div class="col-md-6">{{ campo(form.nombre) }}</div>
-          <div class="col-md-6">{{ campo(form.descripcion) }}</div>
+          <div class="col-md-6">{{ field(form.name) }}</div>
+          <div class="col-md-6">{{ field(form.description) }}</div>
         </div>
 
-        {# PERMISOS: un checkbox por permiso, agrupados por módulo #}
+        {# PERMISSIONS: one checkbox per permission, grouped by module #}
         <div class="mb-3">
           <div class="form-label fw-bold">Permisos</div>
-          {% if es_admin %}
+          {% if is_admin %}
             <div class="alert alert-secondary py-2">El rol <strong>admin</strong> siempre tiene TODOS los permisos.</div>
           {% endif %}
           <div class="row">
-            {% set ns = namespace(modulo=None) %}
-            {% for casilla in form.permisos %}
-              {% set modulo = casilla.label.text.split("-", 1)[-1] %}
-              {% if modulo != ns.modulo %}
-                {% if ns.modulo is not none %}</div>{% endif %}
+            {% set ns = namespace(module=None) %}
+            {% for checkbox in form.permissions %}
+              {% set module = checkbox.label.text.split("-", 1)[-1] %}
+              {% if module != ns.module %}
+                {% if ns.module is not none %}</div>{% endif %}
                 <div class="col-md-4 mb-3">
-                <div class="text-uppercase small text-muted mb-1">{{ modulo }}</div>
-                {% set ns.modulo = modulo %}
+                <div class="text-uppercase small text-muted mb-1">{{ module }}</div>
+                {% set ns.module = module %}
               {% endif %}
               <div class="form-check">
-                {{ casilla(class="form-check-input", disabled=es_admin) }}
-                {{ casilla.label(class="form-check-label") }}
+                {{ checkbox(class="form-check-input", disabled=is_admin) }}
+                {{ checkbox.label(class="form-check-label") }}
               </div>
             {% else %}
               <p class="text-muted">No hay permisos. Corre: flask seed</p>
             {% endfor %}
-            {% if ns.modulo is not none %}</div>{% endif %}
+            {% if ns.module is not none %}</div>{% endif %}
           </div>
         </div>
 
-        {{ form.enviar(class="btn btn-success") }}
-        <a class="btn btn-secondary" href="{{ url_for('roles.lista') }}">Cancelar</a>
+        {{ form.submit(class="btn btn-success") }}
+        <a class="btn btn-secondary" href="{{ url_for('roles.index') }}">Cancelar</a>
       </form>
     </div>
   </div>

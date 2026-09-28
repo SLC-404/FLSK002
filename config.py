@@ -1,6 +1,6 @@
-"""CONFIGURACIÓN por entornos (capítulo 7).
+"""CONFIGURATION per environment.
 
-Lo secreto (SECRET_KEY, DATABASE_URL) viene del archivo .env.
+Secrets (SECRET_KEY, DATABASE_URL) come from the .env file.
 """
 import os
 
@@ -10,29 +10,27 @@ load_dotenv()
 
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "dev-no-usar-en-produccion")
+    SECRET_KEY = os.getenv("SECRET_KEY", "dev-do-not-use-in-production")
 
-    # Base de datos: MySQL desde el .env.
-    # Si DATABASE_URL no existe, usa SQLite (instance/app.db) para no bloquearte.
+    # Database: MySQL from .env. Falls back to SQLite if DATABASE_URL is missing.
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///app.db")
 
-    # Reconecta si MySQL cerró la conexión por inactividad (evita "MySQL server has gone away")
+    # Reconnect if MySQL closed an idle connection ("MySQL server has gone away")
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 
-    NOMBRE_APP = "FLSK BASE"
+    APP_NAME = "FLSK BASE"
 
-    # ARCHIVOS SUBIDOS
-    # Límite total por petición: 5 MB (si mandan algo más grande, Flask responde 413)
+    # UPLOADS
+    # Max size per request: 5 MB (bigger requests get a 413)
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024
-    # La carpeta real se calcula en create_app(): instance/uploads/
-    # (fuera de static/ para que NADIE pueda abrir los archivos sin permiso)
-    UPLOAD_SUBCARPETA = "uploads"
+    # Real folder is built in create_app(): instance/uploads/
+    # (outside static/ so nobody can open files without permission)
+    UPLOAD_SUBFOLDER = "uploads"
 
 
 class DevConfig(Config):
     DEBUG = True
-    # Cambia a True para ver en la terminal todo el SQL que se ejecuta
-    SQLALCHEMY_ECHO = False
+    SQLALCHEMY_ECHO = False   # True = print every SQL query in the terminal
 
 
 class TestConfig(Config):

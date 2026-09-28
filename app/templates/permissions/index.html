@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+{% block title %}Permisos{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Permisos</h1>
+    {% if current_user.can("create-permissions") %}
+      <a class="btn btn-primary" href="{{ url_for('permissions.create') }}">+ Nuevo permiso</a>
+    {% endif %}
+  </div>
+
+  <table class="table align-middle bg-white">
+    <thead><tr><th>Nombre</th><th>Descripción</th><th>En roles</th><th></th></tr></thead>
+    <tbody>
+    {% for permission, total in rows %}
+      <tr>
+        <td><code>{{ permission.name }}</code>
+          {% if permission.name in system %}<span class="badge bg-light text-dark">sistema</span>{% endif %}
+        </td>
+        <td>{{ permission.description or "—" }}</td>
+        <td>{{ total }}</td>
+        <td class="text-end">
+          {% if current_user.can("edit-permissions") %}
+            <a class="btn btn-sm btn-warning" href="{{ url_for('permissions.edit', permission_id=permission.id) }}">Editar</a>
+          {% endif %}
+          {% if current_user.can("delete-permissions") and permission.name not in system %}
+            <form method="post" action="{{ url_for('permissions.delete', permission_id=permission.id) }}" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar el permiso {{ permission.name }}?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-danger">Eliminar</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="text-center text-muted">No hay permisos. Corre: flask seed</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

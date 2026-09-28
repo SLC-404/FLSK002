@@ -1,0 +1,52 @@
+{# REUSABLE MACRO: renders any Flask-WTF field with Bootstrap.
+   Usage:  {% from "_form.html" import field %}   then   {{ field(form.email) }}
+   It checks the field type (f.type) and renders a checkbox, select, radio or input. #}
+{% macro field(f, help=None) %}
+  {% set invalid = " is-invalid" if f.errors else "" %}
+
+  {% if f.type == "BooleanField" %}
+    {# CHECKBOX styled as a switch #}
+    <div class="form-check form-switch mb-3">
+      {{ f(class="form-check-input" + invalid, role="switch") }}
+      {{ f.label(class="form-check-label") }}
+    </div>
+
+  {% elif f.type == "SelectField" %}
+    <div class="mb-3">
+      {{ f.label(class="form-label") }}
+      {{ f(class="form-select" + invalid) }}
+      {% for e in f.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+    </div>
+
+  {% elif f.type == "RadioField" %}
+    <div class="mb-3">
+      <div class="form-label">{{ f.label.text }}</div>
+      {% for option in f %}
+        <div class="form-check form-check-inline">
+          {{ option(class="form-check-input") }} {{ option.label(class="form-check-label") }}
+        </div>
+      {% endfor %}
+      {% for e in f.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+    </div>
+
+  {% else %}
+    {# Regular INPUT (text, email, password, file...) #}
+    <div class="mb-3">
+      {{ f.label(class="form-label") }}
+      {{ f(class="form-control" + invalid) }}
+      {% if help %}<div class="form-text">{{ help }}</div>{% endif %}
+      {% for e in f.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{# AVATAR: the user's photo or a circle with their initial #}
+{% macro avatar(u, size=40) %}
+  {% if u.photo %}
+    <img src="{{ url_for('profile.photo', user_id=u.id) }}" alt="{{ u.name }}"
+         class="rounded-circle object-fit-cover" width="{{ size }}" height="{{ size }}">
+  {% else %}
+    <span class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center"
+          style="width: {{ size }}px; height: {{ size }}px;">{{ u.name[:1]|upper }}</span>
+  {% endif %}
+{% endmacro %}

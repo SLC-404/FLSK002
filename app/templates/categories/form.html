@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% from "_form.html" import field %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+  <h1 class="mb-4">{{ title }}</h1>
+  <div class="card col-md-6">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+        {{ field(form.name) }}
+        {{ field(form.description) }}
+        {{ form.submit(class="btn btn-success") }}
+        <a class="btn btn-secondary" href="{{ url_for('categories.index') }}">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}

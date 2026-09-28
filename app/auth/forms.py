@@ -1,10 +1,10 @@
-"""FORMULARIOS DE AUTENTICACIÓN (mismo principio que el capítulo 6)."""
+"""AUTH FORMS."""
 from flask_wtf import FlaskForm
 from wtforms import BooleanField, EmailField, PasswordField, StringField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
 
 from app.extensions import db
-from app.models import Usuario
+from app.models import User
 
 
 class LoginForm(FlaskForm):
@@ -15,12 +15,12 @@ class LoginForm(FlaskForm):
     password = PasswordField("Contraseña", validators=[
         DataRequired(message="Escribe tu contraseña"),
     ])
-    recordarme = BooleanField("Recordarme")
-    enviar = SubmitField("Entrar")
+    remember = BooleanField("Recordarme")
+    submit = SubmitField("Entrar")
 
 
-class RegistroForm(FlaskForm):
-    nombre = StringField("Nombre", validators=[
+class RegisterForm(FlaskForm):
+    name = StringField("Nombre", validators=[
         DataRequired(message="Escribe tu nombre"),
         Length(max=80),
     ])
@@ -33,17 +33,15 @@ class RegistroForm(FlaskForm):
         DataRequired(message="Escribe una contraseña"),
         Length(min=8, message="Mínimo 8 caracteres"),
     ])
-    confirmar = PasswordField("Confirmar contraseña", validators=[
+    confirm = PasswordField("Confirmar contraseña", validators=[
         DataRequired(message="Confirma tu contraseña"),
-        EqualTo("password", message="Las contraseñas no coinciden"),   # = 'confirmed' en Laravel
+        EqualTo("password", message="Las contraseñas no coinciden"),   # = 'confirmed' in Laravel
     ])
-    enviar = SubmitField("Crear cuenta")
+    submit = SubmitField("Crear cuenta")
 
-    def validate_email(self, campo):
-        """Validación PERSONALIZADA: WTForms llama solo a los métodos validate_<campo>.
-        Aquí revisamos en la BD que el correo no esté registrado (como 'unique:usuarios')."""
-        existe = db.session.scalar(
-            db.select(Usuario).filter_by(email=campo.data.lower())
-        )
-        if existe:
+    def validate_email(self, field):
+        """CUSTOM validation: WTForms automatically calls every validate_<field> method.
+        Checks the email is not registered yet (like 'unique:users' in Laravel)."""
+        exists = db.session.scalar(db.select(User).filter_by(email=field.data.lower()))
+        if exists:
             raise ValidationError("Ya existe una cuenta con ese correo")
