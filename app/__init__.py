@@ -33,6 +33,8 @@ def create_app(entorno="dev"):
     from app.permisos import bp as permisos_bp
     from app.roles import bp as roles_bp
     from app.usuarios import bp as usuarios_bp
+    from app.category import bp as category_bp
+    from app.products import bp as products_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -40,6 +42,8 @@ def create_app(entorno="dev"):
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(roles_bp)
     app.register_blueprint(permisos_bp)
+    app.register_blueprint(category_bp)
+    app.register_blueprint(products_bp)
 
     # 4. Variables disponibles en todas las plantillas
     @app.context_processor

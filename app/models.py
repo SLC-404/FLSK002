@@ -29,7 +29,27 @@ rol_permisos = Table(
     Column("permiso_id", ForeignKey("permisos.id", ondelete="CASCADE"), primary_key=True),
 )
 
+class Category(db.Model):
+    __tablename__="category"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(100))
+    descripcion: Mapped[str | None] = mapped_column(String(250))
+    
+    products:Mapped[list["Products"]]=relationship("category")
+    
+class Products(db.Model):
+    __tablename__="products"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(100))      # "ver-usuarios"
+    descripcion: Mapped[str | None] = mapped_column(String(250))
+    price: Mapped[int]
+    quantity: Mapped[int]
+    
+    category_id: Mapped[int]= mapped_column(ForeignKey("category.id"))
+    category: Mapped["Category"]= relationship(back_populates="category")
 
+    
 class Permiso(db.Model):
     __tablename__ = "permisos"
 
@@ -104,7 +124,6 @@ class Usuario(UserMixin, db.Model):
 
     @property
     def is_active(self):
-        """Flask-Login no deja entrar a usuarios desactivados."""
         return self.activo
 
     def __repr__(self):
@@ -112,7 +131,6 @@ class Usuario(UserMixin, db.Model):
 
 
 class Anonimo(AnonymousUserMixin):
-    """Usuario SIN sesión: no puede nada (así current_user.puede() nunca truena)."""
     def puede(self, permiso):
         return False
 
