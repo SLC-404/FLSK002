@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+{% block titulo %}Error{% endblock %}
+{% block contenido %}
+  <div class="text-center py-5">
+    <h1 class="display-4">500</h1>
+    <p class="lead">Algo salió mal. Intenta de nuevo en un momento.</p>
+    <a class="btn btn-primary" href="{{ url_for('main.inicio') }}">Volver al inicio</a>
+  </div>
+{% endblock %}

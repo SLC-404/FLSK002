@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% from "_formulario.html" import campo %}
+{% block titulo %}Iniciar sesión{% endblock %}
+
+{% block contenido %}
+  <div class="row justify-content-center">
+    <div class="col-md-5">
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <h2 class="mb-4">Iniciar sesión</h2>
+          <form method="post" novalidate>
+            {{ form.hidden_tag() }}
+            {{ campo(form.email) }}
+            {{ campo(form.password) }}
+            <div class="form-check mb-3">
+              {{ form.recordarme(class="form-check-input") }}
+              {{ form.recordarme.label(class="form-check-label") }}
+            </div>
+            {{ form.enviar(class="btn btn-primary w-100") }}
+          </form>
+          <p class="mt-3 mb-0 text-center">
+            ¿No tienes cuenta? <a href="{{ url_for('auth.registro') }}">Regístrate</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

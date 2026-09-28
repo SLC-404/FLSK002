@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block titulo %}Inicio{% endblock %}
+
+{% block contenido %}
+  <div class="p-5 bg-white rounded shadow-sm text-center">
+    <h1>{{ nombre_app }}</h1>
+    <p class="lead">Plantilla base de Flask con MySQL y login.</p>
+    {% if current_user.is_authenticated %}
+      <a class="btn btn-primary" href="{{ url_for('main.panel') }}">Ir a mi panel</a>
+    {% else %}
+      <a class="btn btn-primary" href="{{ url_for('auth.login') }}">Iniciar sesión</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('auth.registro') }}">Crear cuenta</a>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+{% block titulo %}Roles{% endblock %}
+
+{% block contenido %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Roles</h1>
+    <a class="btn btn-primary" href="{{ url_for('roles.nuevo') }}">+ Nuevo rol</a>
+  </div>
+
+  <table class="table align-middle bg-white">
+    <thead><tr><th>Nombre</th><th>Descripción</th><th>Usuarios</th><th></th></tr></thead>
+    <tbody>
+    {# Cada fila trae DOS cosas (el rol y su conteo) porque la consulta usó execute #}
+    {% for rol, total in filas %}
+      <tr>
+        <td><strong>{{ rol.nombre }}</strong>
+          {% if rol.nombre in protegidos %}<span class="badge bg-light text-dark">sistema</span>{% endif %}
+        </td>
+        <td>{{ rol.descripcion or "—" }}</td>
+        <td>{{ total }}</td>
+        <td class="text-end">
+          <a class="btn btn-sm btn-warning" href="{{ url_for('roles.editar', rol_id=rol.id) }}">Editar</a>
+          {% if rol.nombre not in protegidos %}
+            <form method="post" action="{{ url_for('roles.eliminar', rol_id=rol.id) }}" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar el rol {{ rol.nombre }}?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-danger">Eliminar</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

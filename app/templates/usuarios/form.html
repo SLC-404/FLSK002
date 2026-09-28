@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% from "_formulario.html" import campo, avatar %}
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block contenido %}
+  <h1 class="mb-4">{{ titulo }}</h1>
+  <div class="card col-lg-8">
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="row">
+          <div class="col-md-6">{{ campo(form.nombre) }}</div>
+          <div class="col-md-6">{{ campo(form.email) }}</div>
+        </div>
+
+        <div class="row align-items-end">
+          <div class="col-md-6">{{ campo(form.rol_id) }}</div>      {# ← el SELECT #}
+          <div class="col-md-6">{{ campo(form.activo) }}</div>      {# ← el CHECKBOX #}
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            {{ campo(form.password, "Al editar, déjala vacía para no cambiarla." if usuario) }}
+          </div>
+          <div class="col-md-6">{{ campo(form.confirmar) }}</div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            {% if usuario and usuario.foto %}<div class="mb-2">{{ avatar(usuario, 60) }}</div>{% endif %}
+            {{ campo(form.foto) }}
+          </div>
+          <div class="col-md-6">
+            {% if usuario and usuario.identificacion %}
+              <div class="mb-2">Actual:
+                <a href="{{ url_for('perfil.identificacion', usuario_id=usuario.id) }}" target="_blank">
+                  {{ usuario.identificacion_nombre }}</a>
+              </div>
+            {% endif %}
+            {{ campo(form.identificacion) }}
+          </div>
+        </div>
+
+        {{ form.enviar(class="btn btn-success") }}
+        <a class="btn btn-secondary" href="{{ url_for('usuarios.lista') }}">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}
