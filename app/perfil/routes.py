@@ -48,9 +48,9 @@ def foto(usuario_id):
 @bp.get("/<int:usuario_id>/identificacion")
 @login_required
 def identificacion(usuario_id):
-    """Sirve la identificación: SOLO el dueño o un admin (es un documento privado)."""
+    """Sirve la identificación: SOLO el dueño o quien tenga "ver-usuarios" (documento privado)."""
     usuario = db.get_or_404(Usuario, usuario_id)
-    if current_user.id != usuario.id and not current_user.es_admin:
+    if current_user.id != usuario.id and not current_user.puede("ver-usuarios"):
         abort(403)
     if not usuario.identificacion:
         abort(404)

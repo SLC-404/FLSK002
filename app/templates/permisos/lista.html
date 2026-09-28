@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+{% block titulo %}Permisos{% endblock %}
+
+{% block contenido %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Permisos</h1>
+    {% if current_user.puede("crear-permisos") %}
+      <a class="btn btn-primary" href="{{ url_for('permisos.nuevo') }}">+ Nuevo permiso</a>
+    {% endif %}
+  </div>
+
+  <table class="table align-middle bg-white">
+    <thead><tr><th>Nombre</th><th>Descripción</th><th>En roles</th><th></th></tr></thead>
+    <tbody>
+    {% for permiso, total in filas %}
+      <tr>
+        <td><code>{{ permiso.nombre }}</code>
+          {% if permiso.nombre in sistema %}<span class="badge bg-light text-dark">sistema</span>{% endif %}
+        </td>
+        <td>{{ permiso.descripcion or "—" }}</td>
+        <td>{{ total }}</td>
+        <td class="text-end">
+          {% if current_user.puede("editar-permisos") %}
+            <a class="btn btn-sm btn-warning" href="{{ url_for('permisos.editar', permiso_id=permiso.id) }}">Editar</a>
+          {% endif %}
+          {% if current_user.puede("eliminar-permisos") and permiso.nombre not in sistema %}
+            <form method="post" action="{{ url_for('permisos.eliminar', permiso_id=permiso.id) }}" class="d-inline"
+                  onsubmit="return confirm('¿Eliminar el permiso {{ permiso.nombre }}?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-danger">Eliminar</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="text-center text-muted">No hay permisos. Corre: flask seed</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

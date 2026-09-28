@@ -1,6 +1,3 @@
-{# MACRO REUTILIZABLE: dibuja cualquier campo de Flask-WTF con Bootstrap.
-   Uso:  {% from "_formulario.html" import campo %}   y luego   {{ campo(form.email) }}
-   Detecta el tipo de campo (c.type) y lo dibuja como checkbox, select, archivo o input. #}
 {% macro campo(c, ayuda=None) %}
   {% set invalido = " is-invalid" if c.errors else "" %}
 

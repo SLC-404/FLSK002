@@ -17,13 +17,19 @@
       <div class="navbar-nav me-auto">
         <a class="nav-link" href="{{ url_for('main.inicio') }}">Inicio</a>
         {% if current_user.is_authenticated %}
-          <a class="nav-link" href="{{ url_for('main.panel') }}">Panel</a>
-          {# Aquí agregas los links de tus módulos nuevos #}
-
-          {# Menú solo para admins #}
-          {% if current_user.es_admin %}
+          {# Cada link se muestra SOLO si el rol del usuario tiene el permiso "ver-..." #}
+          {% if current_user.puede("ver-inicio") %}
+            <a class="nav-link" href="{{ url_for('main.panel') }}">Panel</a>
+          {% endif %}
+          {# Aquí agregas los links de tus módulos nuevos, igual con su permiso #}
+          {% if current_user.puede("ver-usuarios") %}
             <a class="nav-link" href="{{ url_for('usuarios.lista') }}">Usuarios</a>
+          {% endif %}
+          {% if current_user.puede("ver-roles") %}
             <a class="nav-link" href="{{ url_for('roles.lista') }}">Roles</a>
+          {% endif %}
+          {% if current_user.puede("ver-permisos") %}
+            <a class="nav-link" href="{{ url_for('permisos.lista') }}">Permisos</a>
           {% endif %}
         {% endif %}
       </div>

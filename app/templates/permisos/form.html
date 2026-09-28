@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% from "_formulario.html" import campo %}
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block contenido %}
+  <h1 class="mb-4">{{ titulo }}</h1>
+  <div class="card col-md-6">
+    <div class="card-body">
+      {% if protegido %}
+        <div class="alert alert-info">Este permiso lo usa el sistema: solo puedes cambiar la descripción.</div>
+      {% endif %}
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+        {{ campo(form.nombre, ayuda="Formato accion-modulo, ej. ver-productos") }}
+        {{ campo(form.descripcion) }}
+        {{ form.enviar(class="btn btn-success") }}
+        <a class="btn btn-secondary" href="{{ url_for('permisos.lista') }}">Cancelar</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}

@@ -5,7 +5,9 @@
 {% block contenido %}
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1>Usuarios</h1>
-    <a class="btn btn-primary" href="{{ url_for('usuarios.nuevo') }}">+ Nuevo usuario</a>
+    {% if current_user.puede("crear-usuarios") %}
+      <a class="btn btn-primary" href="{{ url_for('usuarios.nuevo') }}">+ Nuevo usuario</a>
+    {% endif %}
   </div>
 
   {# FILTROS por GET: /usuarios/?q=ana&rol=2 #}
@@ -41,7 +43,7 @@
           <form method="post" action="{{ url_for('usuarios.cambiar_activo', usuario_id=u.id) }}" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-sm {{ 'btn-success' if u.activo else 'btn-outline-secondary' }}"
-                    {{ "disabled" if u.id == current_user.id }}>
+                    {{ "disabled" if u.id == current_user.id or not current_user.puede("editar-usuarios") }}>
               {{ "Activo" if u.activo else "Inactivo" }}
             </button>
           </form>
@@ -52,8 +54,10 @@
           {% else %}—{% endif %}
         </td>
         <td class="text-end">
-          <a class="btn btn-sm btn-warning" href="{{ url_for('usuarios.editar', usuario_id=u.id) }}">Editar</a>
-          {% if u.id != current_user.id %}
+          {% if current_user.puede("editar-usuarios") %}
+            <a class="btn btn-sm btn-warning" href="{{ url_for('usuarios.editar', usuario_id=u.id) }}">Editar</a>
+          {% endif %}
+          {% if current_user.puede("eliminar-usuarios") and u.id != current_user.id %}
             <form method="post" action="{{ url_for('usuarios.eliminar', usuario_id=u.id) }}" class="d-inline"
                   onsubmit="return confirm('¿Eliminar a {{ u.nombre }}?')">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

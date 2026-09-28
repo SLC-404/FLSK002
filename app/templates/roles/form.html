@@ -4,15 +4,45 @@
 
 {% block contenido %}
   <h1 class="mb-4">{{ titulo }}</h1>
-  <div class="card col-md-6">
+  <div class="card col-lg-8">
     <div class="card-body">
       {% if protegido %}
-        <div class="alert alert-info">Este rol lo usa el sistema: solo puedes cambiar la descripción.</div>
+        <div class="alert alert-info">Este rol lo usa el sistema: no se puede renombrar.</div>
       {% endif %}
       <form method="post" novalidate>
         {{ form.hidden_tag() }}
-        {{ campo(form.nombre) }}
-        {{ campo(form.descripcion) }}
+        <div class="row">
+          <div class="col-md-6">{{ campo(form.nombre) }}</div>
+          <div class="col-md-6">{{ campo(form.descripcion) }}</div>
+        </div>
+
+        {# PERMISOS: un checkbox por permiso, agrupados por módulo #}
+        <div class="mb-3">
+          <div class="form-label fw-bold">Permisos</div>
+          {% if es_admin %}
+            <div class="alert alert-secondary py-2">El rol <strong>admin</strong> siempre tiene TODOS los permisos.</div>
+          {% endif %}
+          <div class="row">
+            {% set ns = namespace(modulo=None) %}
+            {% for casilla in form.permisos %}
+              {% set modulo = casilla.label.text.split("-", 1)[-1] %}
+              {% if modulo != ns.modulo %}
+                {% if ns.modulo is not none %}</div>{% endif %}
+                <div class="col-md-4 mb-3">
+                <div class="text-uppercase small text-muted mb-1">{{ modulo }}</div>
+                {% set ns.modulo = modulo %}
+              {% endif %}
+              <div class="form-check">
+                {{ casilla(class="form-check-input", disabled=es_admin) }}
+                {{ casilla.label(class="form-check-label") }}
+              </div>
+            {% else %}
+              <p class="text-muted">No hay permisos. Corre: flask seed</p>
+            {% endfor %}
+            {% if ns.modulo is not none %}</div>{% endif %}
+          </div>
+        </div>
+
         {{ form.enviar(class="btn btn-success") }}
         <a class="btn btn-secondary" href="{{ url_for('roles.lista') }}">Cancelar</a>
       </form>

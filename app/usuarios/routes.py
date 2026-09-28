@@ -1,4 +1,4 @@
-"""CRUD DE USUARIOS (solo admin)."""
+"""CRUD DE USUARIOS (protegido por permisos: ver/crear/editar/eliminar-usuarios)."""
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import or_
@@ -9,7 +9,7 @@ from app.models import Rol, Usuario
 from app.usuarios import bp
 from app.usuarios.forms import UsuarioForm
 from app.utils.archivos import borrar_archivo, guardar_archivo, se_subio
-from app.utils.decoradores import rol_requerido
+from app.utils.decoradores import permiso_requerido
 
 
 def guardar_archivos(form, usuario):
@@ -25,7 +25,7 @@ def guardar_archivos(form, usuario):
 
 @bp.get("/")
 @login_required
-@rol_requerido("admin")
+@permiso_requerido("ver-usuarios")
 def lista():
     q = request.args.get("q", "").strip()
     rol_id = request.args.get("rol", type=int)
@@ -45,7 +45,7 @@ def lista():
 
 @bp.route("/nuevo", methods=["GET", "POST"])
 @login_required
-@rol_requerido("admin")
+@permiso_requerido("crear-usuarios")
 def nuevo():
     form = UsuarioForm()
     if form.validate_on_submit():
@@ -66,7 +66,7 @@ def nuevo():
 
 @bp.route("/<int:usuario_id>/editar", methods=["GET", "POST"])
 @login_required
-@rol_requerido("admin")
+@permiso_requerido("editar-usuarios")
 def editar(usuario_id):
     usuario = db.get_or_404(Usuario, usuario_id)
     # obj=usuario precarga TODO: nombre, email, el rol seleccionado en el select y el checkbox
@@ -78,8 +78,8 @@ def editar(usuario_id):
         # Candados para no dejarte fuera a ti mismo
         if es_yo and not form.activo.data:
             flash("No puedes desactivar tu propia cuenta", "danger")
-        elif es_yo and rol_nuevo.nombre != "admin":
-            flash("No puedes quitarte el rol de admin a ti mismo", "danger")
+        elif es_yo and rol_nuevo.id != usuario.rol_id:
+            flash("No puedes cambiar tu propio rol", "danger")
         else:
             usuario.nombre = form.nombre.data.strip()
             usuario.email = form.email.data.lower()
@@ -98,7 +98,7 @@ def editar(usuario_id):
 
 @bp.post("/<int:usuario_id>/activo")
 @login_required
-@rol_requerido("admin")
+@permiso_requerido("editar-usuarios")
 def cambiar_activo(usuario_id):
     """Activa/desactiva con un clic desde la lista."""
     usuario = db.get_or_404(Usuario, usuario_id)
@@ -114,7 +114,7 @@ def cambiar_activo(usuario_id):
 
 @bp.post("/<int:usuario_id>/eliminar")
 @login_required
-@rol_requerido("admin")
+@permiso_requerido("eliminar-usuarios")
 def eliminar(usuario_id):
     usuario = db.get_or_404(Usuario, usuario_id)
     if usuario.id == current_user.id:
