@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 
 import click
-from flask import Flask, flash, redirect, render_template, request
+from flask import Flask, flash, jsonify, redirect, render_template, request
 
 from app.extensions import csrf, db, login_manager, migrate
 from config import config
@@ -27,6 +27,7 @@ def create_app(env="dev"):
     from app import models
 
     # 3. Blueprints. For a new module: import it and register it here.
+    from app.api import bp as api_bp
     from app.auth import bp as auth_bp
     from app.categories import bp as categories_bp
     from app.main import bp as main_bp
@@ -44,6 +45,8 @@ def create_app(env="dev"):
     app.register_blueprint(permissions_bp)
     app.register_blueprint(categories_bp)
     app.register_blueprint(products_bp)
+    app.register_blueprint(api_bp)
+    csrf.exempt(api_bp)   # the API receives JSON from other programs: no CSRF form token
 
     # 4. Variables available in every template
     @app.context_processor
@@ -51,13 +54,27 @@ def create_app(env="dev"):
         return {"year": datetime.now().year, "app_name": app.config["APP_NAME"]}
 
     # 5. Error pages
+    #    /api/... answers JSON; the web pages answer HTML
+    def wants_json():
+        return request.path.startswith("/api/")
+
     @app.errorhandler(403)
     def forbidden(error):
+        if wants_json():
+            return jsonify(error="Prohibido"), 403
         return render_template("errors/403.html"), 403
 
     @app.errorhandler(404)
     def not_found(error):
+        if wants_json():
+            return jsonify(error="No encontrado"), 404
         return render_template("errors/404.html"), 404
+
+    @app.errorhandler(405)
+    def method_not_allowed(error):
+        if wants_json():
+            return jsonify(error="Método no permitido"), 405
+        return error
 
     @app.errorhandler(413)
     def file_too_large(error):
@@ -67,6 +84,8 @@ def create_app(env="dev"):
     @app.errorhandler(500)
     def server_error(error):
         db.session.rollback()
+        if wants_json():
+            return jsonify(error="Error interno del servidor"), 500
         return render_template("errors/500.html"), 500
 
     # 6. flask shell with db and models preloaded

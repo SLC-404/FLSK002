@@ -123,6 +123,10 @@ class Category(db.Model):
 
     products: Mapped[list["Product"]] = relationship(back_populates="category")
 
+    def to_dict(self):
+        """Model -> dict, so the API can return it as JSON."""
+        return {"id": self.id, "name": self.name, "description": self.description}
+
     def __repr__(self):
         return f"<Category {self.name}>"
 
@@ -139,6 +143,17 @@ class Product(db.Model):
 
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
     category: Mapped["Category"] = relationship(back_populates="products")
+
+    def to_dict(self):
+        """Model -> dict for the API. Decimal is not JSON: convert it to float."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "price": float(self.price),
+            "stock": self.stock,
+            "category": {"id": self.category.id, "name": self.category.name},
+        }
 
     def __repr__(self):
         return f"<Product {self.name} ${self.price}>"

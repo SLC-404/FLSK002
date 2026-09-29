@@ -20,6 +20,10 @@ class Config:
 
     APP_NAME = "FLSK BASE"
 
+    # REST API (/api/...): clients send it in the "X-API-Key" header.
+    # If it's empty, the API is open (handy in development; ALWAYS set it in production).
+    API_KEY = os.getenv("API_KEY", "")
+
     # UPLOADS
     # Max size per request: 5 MB (bigger requests get a 413)
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024

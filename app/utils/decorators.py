@@ -12,7 +12,7 @@ role_required("admin") stays in case you ever need to check the ROLE directly.
 """
 from functools import wraps
 
-from flask import abort
+from flask import abort, current_app, jsonify, request
 from flask_login import current_user
 
 
@@ -36,3 +36,15 @@ def permission_required(permission):
             return func(*args, **kwargs)
         return wrapper
     return decorator
+
+
+def api_key_required(func):
+    """For the JSON API: checks the "X-API-Key" header against API_KEY from .env.
+    APIs don't use the login session/cookies: each request brings its own key (or a token)."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        expected = current_app.config.get("API_KEY")
+        if expected and request.headers.get("X-API-Key") != expected:
+            return jsonify(error="API key inválida o faltante"), 401
+        return func(*args, **kwargs)
+    return wrapper
